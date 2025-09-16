@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           # Write raw multi-line input to a file
-          printf '%s\n' "${{ inputs.patch }}" > /tmp/patch.diff
+          echo "${{ inputs.patch }}" | sed 's/\\n/\n/g' > /tmp/patch.diff
 
           # quick sanity check: looks like a git-style patch?
           head -n 1 /tmp/patch.diff | grep -Eq '^(---|diff --git)' || {
