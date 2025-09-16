@@ -21,12 +21,8 @@ jobs:
       - name: Rehydrate diff to file
         run: |
           set -euo pipefail
-          echo 'import json, sys
-s = json.loads(r"""${{ toJSON(inputs.patch) }}""")
-s = s.replace("\\r\\n","\n").replace("\\n","\n").replace("\\t","\t")
-open("/tmp/patch.diff","w").write(s)
-print("Wrote patch with", len(s.splitlines()), "lines")' | python3
-          echo "==== preview ===="
+          python3 -c "import json,sys; s=json.loads(r'''${{ toJSON(inputs.patch) }}'''); s=s.replace('\\r\\n','\n').replace('\\n','\n').replace('\\t','\t'); open('/tmp/patch.diff','w').write(s)"
+          echo '==== preview ===='
           head -n 20 /tmp/patch.diff || true
 
       - name: Apply patch, commit, push (as you)
@@ -34,11 +30,11 @@ print("Wrote patch with", len(s.splitlines()), "lines")' | python3
           MY_PAT: ${{ secrets.MY_PAT }}
         run: |
           set -euo pipefail
-          git config user.name  "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name  \"${{ github.actor }}\"
+          git config user.email \"${{ github.actor }}@users.noreply.github.com\"
 
           git apply --whitespace=fix --index /tmp/patch.diff
-          git diff --cached --quiet && { echo "No changes"; exit 0; }
-          git commit -m "${{ inputs.message }}"
-          git remote set-url origin "https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git"
+          git diff --cached --quiet && { echo 'No changes'; exit 0; }
+          git commit -m \"${{ inputs.message }}\"
+          git remote set-url origin \"https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git\"
           git push origin HEAD:main
