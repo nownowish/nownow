@@ -12,18 +12,18 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    permissions: {}  # we'll push with your PAT, not GITHUB_TOKEN
+    permissions: {}
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Write pasted diff to file
         shell: bash
         run: |
-          # Write raw input (can include newlines) into a file
-          cat > /tmp/patch.diff <<'PATCH_EOF'
-${{ inputs.patch }}
-PATCH_EOF
+          set -euo pipefail
+          # Write raw multi-line input to a file
+          printf '%s\n' "${{ inputs.patch }}" > /tmp/patch.diff
 
           # quick sanity check: looks like a git-style patch?
           head -n 1 /tmp/patch.diff | grep -Eq '^(---|diff --git)' || {
@@ -36,22 +36,20 @@ PATCH_EOF
         run: |
           set -euo pipefail
 
-          # Configure author/committer identity (YOU)
-          git config user.name  "YOUR NAME HERE"
-          git config user.email "yourname@users.noreply.github.com"
-          # (Use your verified noreply or verified email)
+          # Use your identity automatically
+          git config user.name  "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
 
           # Apply and stage changes
-          git apply --whitespace=fix --index /tmp/patch.diff || {
-            echo "git apply failed"; exit 1; }
+          git apply --whitespace=fix --index /tmp/patch.diff
 
           # If nothing changed, stop quietly
           git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
 
-          # Commit with the message you entered
+          # Commit with the provided message
           git commit -m "${{ inputs.message }}"
 
-          # Push to main using your PAT (so it shows as you, not actions[bot])
+          # Push to main using your PAT (so it shows as you)
           git remote set-url origin \
-            https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git
+            "https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git"
           git push origin HEAD:main
