@@ -23,7 +23,12 @@ jobs:
         run: |
           set -euo pipefail
           # Write raw multi-line input to a file
-          echo "${{ inputs.patch }}" | sed 's/\\n/\n/g' > /tmp/patch.diff
+          python - <<'PY'
+          import json, sys
+          s = json.loads(r'''${{ toJSON(inputs.patch) }}''')  # exact text with real newlines
+          open('/tmp/patch.diff','w',encoding='utf-8').write(s)
+          PY
+          echo "==== preview (first 20 lines) ===="
 
           # quick sanity check: looks like a git-style patch?
           head -n 1 /tmp/patch.diff | grep -Eq '^(---|diff --git)' || {
