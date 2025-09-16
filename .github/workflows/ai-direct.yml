@@ -1,12 +1,12 @@
-name: AI Direct Commit (paste a diff)
+name: AI Direct Commit (paste a base64 diff)
 on:
   workflow_dispatch:
     inputs:
-      patch:
-        description: "Unified diff (escaped \\n sequences)"
+      patch_b64:
+        description: "Unified diff, base64-encoded"
         required: true
       message:
-        description: "Commit message (one line)"
+        description: "Commit message"
         required: true
 
 jobs:
@@ -18,11 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Rehydrate diff to file
+      - name: Decode diff
         run: |
           set -euo pipefail
-          python3 -c "import json,sys; s=json.loads(r'''${{ toJSON(inputs.patch) }}'''); s=s.replace('\\r\\n','\n').replace('\\n','\n').replace('\\t','\t'); open('/tmp/patch.diff','w').write(s)"
-          echo '==== preview ===='
+          echo "${{ inputs.patch_b64 }}" | base64 -d > /tmp/patch.diff
+          echo "==== preview ===="
           head -n 20 /tmp/patch.diff || true
 
       - name: Apply patch, commit, push (as you)
@@ -30,11 +30,11 @@ jobs:
           MY_PAT: ${{ secrets.MY_PAT }}
         run: |
           set -euo pipefail
-          git config user.name  \"${{ github.actor }}\"
-          git config user.email \"${{ github.actor }}@users.noreply.github.com\"
+          git config user.name  "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
 
           git apply --whitespace=fix --index /tmp/patch.diff
           git diff --cached --quiet && { echo 'No changes'; exit 0; }
-          git commit -m \"${{ inputs.message }}\"
-          git remote set-url origin \"https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git\"
+          git commit -m "${{ inputs.message }}"
+          git remote set-url origin "https://x-access-token:${MY_PAT}@github.com/${{ github.repository }}.git"
           git push origin HEAD:main
