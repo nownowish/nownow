@@ -21,16 +21,11 @@ jobs:
       - name: Rehydrate diff to file
         run: |
           set -euo pipefail
-          python - "$@" <<PY
-import json, os, sys
-# Grab the single-line input as JSON to preserve escapes
-s = json.loads(r'''${{ toJSON(inputs.patch) }}''')
-# Turn escape sequences back into real newlines/tabs
-s = s.replace('\\r\\n','\n').replace('\\n','\n').replace('\\t','\t')
-with open("/tmp/patch.diff","w",encoding="utf-8") as f:
-    f.write(s)
-print("Wrote patch with", len(s.splitlines()), "lines")
-PY
+          echo 'import json, sys
+s = json.loads(r"""${{ toJSON(inputs.patch) }}""")
+s = s.replace("\\r\\n","\n").replace("\\n","\n").replace("\\t","\t")
+open("/tmp/patch.diff","w").write(s)
+print("Wrote patch with", len(s.splitlines()), "lines")' | python3
           echo "==== preview ===="
           head -n 20 /tmp/patch.diff || true
 
