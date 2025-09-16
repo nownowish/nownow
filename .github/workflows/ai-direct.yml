@@ -21,7 +21,7 @@ jobs:
       - name: Decode diff
         run: |
           set -euo pipefail
-          echo "${{ inputs.patch_b64 }}" | base64 -d > /tmp/patch.diff
+          echo "${{ inputs.patch_b64 }}" | tr -d '\n\r ' | base64 -d > /tmp/patch.diff
           echo "==== preview ===="
           head -n 20 /tmp/patch.diff || true
 
